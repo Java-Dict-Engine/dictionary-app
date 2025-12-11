@@ -1,29 +1,32 @@
-package org.project.model;
-
+package org.project.model; 
 public class DLBNode {
     
     
-    private char data;           // Bu düğümdeki harf
-    private DLBNode sibling;     // Kardeş düğüm (Sağdaki pointer)
-    private DLBNode child;       // Çocuk düğüm (Aşağıdaki pointer)
+    private char data;           // Harf
+    private DLBNode sibling;     // Kardeş
+    private DLBNode child;       // Çocuk
     private boolean isWordEnd;   // Kelime bitişi mi?
     
-    //Constructor
+    
+    private String definition;   // Kelimenin anlamı
+    private String type;         // Türü (İsim, Fiil, Sıfat vb.)
+
+    
     public DLBNode(char data) {
         this.data = data;
         this.sibling = null;
         this.child = null;
         this.isWordEnd = false;
+        this.definition = null; 
+        this.type = null;
     }
     
-    // Boş constructor
+    
     public DLBNode() {
-        this.sibling = null;
-        this.child = null;
-        this.isWordEnd = false;
+        this( (char) 0 ); 
     }
 
-    // 3. Getter ve Setter Metotları
+
     public char getData() {
         return data;
     }
@@ -54,5 +57,22 @@ public class DLBNode {
 
     public void setWordEnd(boolean wordEnd) {
         isWordEnd = wordEnd;
+    }
+    
+
+    public String getDefinition() {
+        return definition;
+    }
+
+    public void setDefinition(String definition) {
+        this.definition = definition;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }
