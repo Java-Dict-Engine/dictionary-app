@@ -6,8 +6,6 @@ public class DLBNode {
     private DLBNode sibling;     // Kardeş
     private DLBNode child;       // Çocuk
     private boolean isWordEnd;   // Kelime bitişi mi?
-    
-    
     private String definition;   // Kelimenin anlamı
     private String type;         // Türü (İsim, Fiil, Sıfat vb.)
 
