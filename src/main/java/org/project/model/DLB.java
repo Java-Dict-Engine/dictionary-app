@@ -1,4 +1,7 @@
 package org.project.model;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * De La Briandais (DLB) Trie veri yapısı.
  * Bu sınıf, kelimeleri ve tanımlarını ağaç yapısında saklar.
@@ -101,5 +104,74 @@ public class DLB {
         }
 
         return null; // Kelime prefix olarak var ama tam kelime değil
+    }
+    /**
+     * Verilen prefix (ön ek) ile başlayan tüm kelimeleri bulur.
+     * Örn: "app" -> ["apple", "application", "apply"]
+     * @param prefix Başlangıç harfleri
+     * @return Kelime listesi
+     */
+    public List<String> suggest(String prefix) {
+        List<String> suggestions = new ArrayList<>();
+        if (prefix == null || prefix.isEmpty()) return suggestions;
+
+        DLBNode currentNode = root;
+
+        // 1. Adım: Prefix'in sonuna kadar ağaçta ilerle
+        // (Bu kısım search mantığıyla aynı)
+        for (int i = 0; i < prefix.length(); i++) {
+            char c = prefix.charAt(i);
+            DLBNode child = currentNode.getChild();
+            
+            while (child != null && child.getData() != c) {
+                child = child.getSibling();
+            }
+
+            if (child == null) {
+                return suggestions; // Prefix bile yoksa boş liste dön
+            }
+            currentNode = child;
+        }
+
+        // 2. Adım: Eğer prefix'in kendisi de bir kelimeyse listeye ekle
+        // Örn: "pan" aradık, "pan" diye bir kelime de var.
+        if (currentNode.isWordEnd()) {
+            suggestions.add(prefix);
+        }
+
+        // 3. Adım: Bu noktadan sonraki tüm olasılıkları topla (Backtracking)
+        // StringBuilder kullanarak performanslı string birleştirme yapıyoruz
+        collectWords(currentNode.getChild(), new StringBuilder(prefix), suggestions);
+
+        return suggestions;
+    }
+
+    /**
+     * Yardımcı Metot (Recursive): Ağacın derinliklerine inip kelimeleri toplar.
+     */
+    private void collectWords(DLBNode node, StringBuilder currentWord, List<String> results) {
+        if (node == null) return;
+
+        DLBNode temp = node;
+
+        // Mevcut seviyedeki tüm kardeşleri gez (Sibling Loop)
+        while (temp != null) {
+            // Harfi ekle
+            currentWord.append(temp.getData());
+
+            // Kelime bitti mi? Listeye ekle
+            if (temp.isWordEnd()) {
+                results.add(currentWord.toString());
+            }
+
+            // Aşağıya in (Child - Recursion)
+            collectWords(temp.getChild(), currentWord, results);
+
+            // Geri dön (Backtrack): Son eklediğimiz harfi silip yan kardeşe geçeceğiz
+            currentWord.setLength(currentWord.length() - 1);
+
+            // Yan kardeşe geç
+            temp = temp.getSibling();
+        }
     }
 }

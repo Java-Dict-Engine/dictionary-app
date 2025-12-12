@@ -13,49 +13,48 @@ import java.util.List;
 
 public class App {
     
-    // JSON'daki veriyi karşılayacak geçici bir sınıf (POJO)
-    // JSON dosyasında "word" ve "meaning" alanları olduğu için buna uygun yaptık.
     private static class DictionaryItem {
         String word;
         String meaning;
     }
 
     public static void main(String[] args) {
-        System.out.println("--- SÖZLÜK TESTİ BAŞLIYOR ---");
+        System.out.println("--- SÖZLÜK VE TAMAMLAMA TESTİ ---");
 
         DLB dictionary = new DLB();
         Gson gson = new Gson();
 
         try {
-            // 1. Dosyayı Resources klasöründen oku
+            // 1. Dosyayı Oku
             InputStream inputStream = App.class.getClassLoader().getResourceAsStream("dictionary.json");
-            
             if (inputStream == null) {
-                System.err.println("HATA: dictionary.json dosyası bulunamadı!");
+                System.err.println("HATA: dictionary.json bulunamadı!");
                 return;
             }
 
-            // 2. JSON verisini Listeye çevir
+            // 2. Verileri Yükle
             Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
             Type listType = new TypeToken<List<DictionaryItem>>(){}.getType();
             List<DictionaryItem> items = gson.fromJson(reader, listType);
 
-            System.out.println("JSON'dan " + items.size() + " kelime okundu. Ağaca ekleniyor...");
-
-            // 3. Okunan verileri DLB Trie yapısına ekle
             for (DictionaryItem item : items) {
-                // Not: JSON'da 'type' alanı yok, o yüzden şimdilik null veya "Genel" gönderiyoruz.
                 dictionary.add(item.word, item.meaning, "Genel"); 
             }
+            System.out.println("Veriler yüklendi (" + items.size() + " kelime).\n");
 
-            System.out.println("Veri yükleme tamamlandı.\n");
+            // 3. SUGGEST TESTLERİ (Asıl Merak Ettiğimiz Kısım)
+            System.out.println(">>> Test 1: 'ban' ile başlayanlar");
+            testSuggest(dictionary, "ban"); 
+            // Beklenen: banana, band
 
-            // 4. Test Sorguları (Ağaçtan veri çekme)
-            testSearch(dictionary, "apple");       // Var olan kelime
-            testSearch(dictionary, "banana");      // Var olan kelime
-            testSearch(dictionary, "application"); // Prefix benzerliği olan kelime
-            testSearch(dictionary, "araba");       // Olmayan kelime
-            
+            System.out.println("\n>>> Test 2: 'app' ile başlayanlar");
+            testSuggest(dictionary, "app"); 
+            // Beklenen: apple, application
+
+            System.out.println("\n>>> Test 3: 'z' ile başlayanlar (Olmayan)");
+            testSuggest(dictionary, "z"); 
+            // Beklenen: (Boş Liste)
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -63,13 +62,16 @@ public class App {
         System.out.println("\n--- TEST BİTTİ ---");
     }
 
-    // Testi kolaylaştıran yardımcı metod
-    private static void testSearch(DLB dlb, String word) {
-        String definition = dlb.searchDefinition(word);
-        if (definition != null) {
-            System.out.println("✅ BULUNDU [" + word + "]: " + definition);
+    // Listeyi ekrana basan yardımcı metod
+    private static void testSuggest(DLB dlb, String prefix) {
+        List<String> results = dlb.suggest(prefix);
+        
+        if (results.isEmpty()) {
+            System.out.println("Sonuç bulunamadı: " + prefix);
         } else {
-            System.out.println("❌ BULUNAMADI [" + word + "]");
+            for (String s : results) {
+                System.out.println(" -> " + s);
+            }
         }
     }
 }
