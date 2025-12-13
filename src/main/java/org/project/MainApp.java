@@ -22,21 +22,19 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        // --- 1. BACKEND ---
+        // --- 1. BACKEND (PARTNERİNİN KODLARIYLA UYUMLU) ---
         dlb = new DLB();
         DictionaryLoader loader = new DictionaryLoader(dlb);
         loader.load();
 
         // --- 2. ARAYÜZ ---
-
-        // A. Ana Düzen
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: #f4f4f4;");
-        root.setPadding(new Insets(20)); // Dış kenarlardan 20px boşluk
+        root.setPadding(new Insets(20));
 
-        // B. Üst Kısım (Header)
-        VBox topContainer = new VBox(15); // Başlık ile arama kutusu arası 15px
-        topContainer.setPadding(new Insets(0, 0, 20, 0)); // Alt kısımla mesafe
+        // B. Üst Kısım
+        VBox topContainer = new VBox(15);
+        topContainer.setPadding(new Insets(0, 0, 20, 0));
         topContainer.setAlignment(Pos.CENTER);
 
         Label titleLabel = new Label("Smart Dictionary");
@@ -47,21 +45,16 @@ public class MainApp extends Application {
         searchField.setPromptText("Kelime aramaya başlayın...");
         searchField.setPrefHeight(45);
         searchField.setStyle(
-                "-fx-background-radius: 15;" +
-                        "-fx-border-radius: 15;" +
-                        "-fx-border-color: #bdc3c7;" +
-                        "-fx-padding: 0 15 0 15;" +
+                "-fx-background-radius: 15;" + "-fx-border-radius: 15;" +
+                        "-fx-border-color: #bdc3c7;" + "-fx-padding: 0 15 0 15;" +
                         "-fx-font-size: 14px;"
         );
 
         topContainer.getChildren().addAll(titleLabel, searchField);
         root.setTop(topContainer);
 
-        // --- HİZALAMA İÇİN KRİTİK AYARLAR BURADA ---
-
         // C. Sol Kısım (Liste)
-        VBox leftContainer = new VBox(10); // Başlık ile kutu arası 10px (Sağ tarafla eşitlendi)
-
+        VBox leftContainer = new VBox(10);
         Label listHeader = new Label("Sonuçlar");
         listHeader.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
         listHeader.setTextFill(Color.web("#7f8c8d"));
@@ -69,26 +62,21 @@ public class MainApp extends Application {
         suggestionList = new ListView<>();
         suggestionList.setPrefWidth(280);
         suggestionList.setStyle(
-                "-fx-background-radius: 10;" +
-                        "-fx-border-radius: 10;" +
-                        "-fx-border-color: #ecf0f1;" +
-                        "-fx-control-inner-background: white;"
+                "-fx-background-radius: 10;" + "-fx-border-radius: 10;" +
+                        "-fx-border-color: #ecf0f1;" + "-fx-control-inner-background: white;"
         );
-
-        // ÖNEMLİ: Listenin dikeyde (aşağı doğru) sonuna kadar uzamasını sağlar
         VBox.setVgrow(suggestionList, Priority.ALWAYS);
 
         leftContainer.getChildren().addAll(listHeader, suggestionList);
         root.setLeft(leftContainer);
 
         // D. Orta Kısım (Tanım)
-        VBox centerContainer = new VBox(10); // Başlık ile kutu arası 10px (Sol tarafla eşitlendi)
-        centerContainer.setPadding(new Insets(0, 0, 0, 20)); // Listeden 20px uzaklaş
+        VBox centerContainer = new VBox(10);
+        centerContainer.setPadding(new Insets(0, 0, 0, 20));
 
         definitionTitleLabel = new Label("Kelime Anlamı");
         definitionTitleLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
         definitionTitleLabel.setTextFill(Color.web("#2980b9"));
-        // Başlığın yüksekliğini sabitleyelim ki hizayı bozmasın (ListHeader ile aynı hizada dursun)
         definitionTitleLabel.setMaxHeight(Double.MAX_VALUE);
 
         definitionArea = new TextArea();
@@ -96,15 +84,10 @@ public class MainApp extends Application {
         definitionArea.setWrapText(true);
         definitionArea.setText("Listeden bir kelime seçtiğinizde detaylar burada görünecek.");
         definitionArea.setStyle(
-                "-fx-background-color: transparent;" +
-                        "-fx-background-radius: 10;" +
-                        "-fx-border-radius: 10;" +
-                        "-fx-border-color: #bdc3c7;" +
-                        "-fx-font-family: 'Segoe UI';" +
-                        "-fx-font-size: 16px;"
+                "-fx-background-color: transparent;" + "-fx-background-radius: 10;" +
+                        "-fx-border-radius: 10;" + "-fx-border-color: #bdc3c7;" +
+                        "-fx-font-family: 'Segoe UI';" + "-fx-font-size: 16px;"
         );
-
-        // ÖNEMLİ: Tanım alanının dikeyde sonuna kadar uzamasını sağlar
         VBox.setVgrow(definitionArea, Priority.ALWAYS);
 
         centerContainer.getChildren().addAll(definitionTitleLabel, definitionArea);
@@ -116,17 +99,25 @@ public class MainApp extends Application {
             if (newValue == null || newValue.isEmpty()) {
                 suggestionList.getItems().clear();
             } else {
-                // Backend bağlantısı (Şimdilik try-catch içinde)
                 try {
-                    // suggestionList.getItems().setAll(dlb.suggest(newValue));
+                    // Partnerinin suggest metoduyla aynı isimde, sorun yok.
+                    suggestionList.getItems().setAll(dlb.suggest(newValue));
                 } catch (Exception e) {}
             }
         });
 
         suggestionList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                definitionTitleLabel.setText(newValue.substring(0, 1).toUpperCase() + newValue.substring(1));
-                definitionArea.setText("Kelime: " + newValue + "\n\n(Anlam verisi buraya gelecek)");
+                // *** DÜZELTME BURADA YAPILDI ***
+                // Partnerin metodunun adı: searchDefinition
+                String meaning = dlb.searchDefinition(newValue);
+
+                if (meaning != null) {
+                    definitionTitleLabel.setText(newValue.substring(0, 1).toUpperCase() + newValue.substring(1));
+                    definitionArea.setText(meaning);
+                } else {
+                    definitionArea.setText("Anlam bulunamadı.");
+                }
             }
         });
 
