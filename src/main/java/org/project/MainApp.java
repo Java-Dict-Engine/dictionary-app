@@ -22,10 +22,12 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        // --- 1. BACKEND (PARTNERİNİN KODLARIYLA UYUMLU) ---
+        // --- 1. BACKEND BAĞLANTISI ---
         dlb = new DLB();
         DictionaryLoader loader = new DictionaryLoader(dlb);
-        loader.load();
+
+        // DÜZELTME YAPILDI: Checklist'e uygun olarak load() yerine loadData() çağrıldı.
+        loader.loadData();
 
         // --- 2. ARAYÜZ ---
         BorderPane root = new BorderPane();
@@ -100,7 +102,7 @@ public class MainApp extends Application {
                 suggestionList.getItems().clear();
             } else {
                 try {
-                    // Partnerinin suggest metoduyla aynı isimde, sorun yok.
+                    // Partnerinin suggest metoduyla aynı isimde
                     suggestionList.getItems().setAll(dlb.suggest(newValue));
                 } catch (Exception e) {}
             }
@@ -108,7 +110,6 @@ public class MainApp extends Application {
 
         suggestionList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                // *** DÜZELTME BURADA YAPILDI ***
                 // Partnerin metodunun adı: searchDefinition
                 String meaning = dlb.searchDefinition(newValue);
 

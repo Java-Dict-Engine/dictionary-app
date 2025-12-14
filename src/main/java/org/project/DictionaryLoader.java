@@ -21,11 +21,11 @@ public class DictionaryLoader {
 
     /**
      * resources/dictionary.json dosyasını okur ve DLB Trie yapısına yükler.
+     * GÖREV GEREĞİ İSİM GÜNCELLENDİ: load() -> loadData()
      */
-    public void load() {
+    public void loadData() {
         try {
             // 1. Dosya Yolu: getResourceAsStream ile resources klasörüne erişim
-            // Bu yöntem hem IDE içinde hem de JAR olarak paketlendiğinde çalışır.
             InputStream inputStream = getClass().getClassLoader().getResourceAsStream("dictionary.json");
 
             if (inputStream == null) {
@@ -46,10 +46,8 @@ public class DictionaryLoader {
             if (entries != null) {
                 for (DictionaryEntry entry : entries) {
                     if (entry.word != null) {
-                        // Partnerinin belirttiği add(word, meaning, type) yapısını kullanıyoruz.
-                        // JSON'da 'type' yoksa null gidebilir veya varsayılan değer atayabilirsin.
+                        // Type kontrolü ve ekleme
                         String type = (entry.type != null) ? entry.type : "unknown";
-
                         dlb.add(entry.word.toLowerCase(), entry.meaning, type);
                         count++;
                     }
@@ -67,11 +65,10 @@ public class DictionaryLoader {
         }
     }
 
-    // JSON verisini karşılayacak yardımcı sınıf (Inner Class)
-    // JSON dosyasındaki anahtarlarla (keys) birebir aynı isimde olmalıdır.
+    // JSON verisini karşılayacak yardımcı sınıf
     private static class DictionaryEntry {
         String word;
         String meaning;
-        String type; // Partnerin belirttiği 'type' alanı için
+        String type;
     }
 }
