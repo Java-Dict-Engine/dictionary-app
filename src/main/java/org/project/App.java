@@ -63,9 +63,24 @@ public class App {
     }
 
     // Listeyi ekrana basan yardımcı metod
+ // Listeyi ekrana basan ve HIZINI ÖLÇEN yardımcı metod
     private static void testSuggest(DLB dlb, String prefix) {
+        // 1. KRONOMETREYİ BAŞLAT
+        long startTime = System.nanoTime();
+
+        // Asıl arama işlemi
         List<String> results = dlb.suggest(prefix);
         
+        // 2. KRONOMETREYİ DURDUR
+        long endTime = System.nanoTime();
+
+        // 3. HESAPLA (Nanosaniye cinsinden)
+        long duration = (endTime - startTime);
+        
+        // Okunabilir formata çevir (Milisaniye)
+        double durationMs = duration / 1_000_000.0;
+
+        // --- SONUÇLARI YAZDIR ---
         if (results.isEmpty()) {
             System.out.println("Sonuç bulunamadı: " + prefix);
         } else {
@@ -73,5 +88,9 @@ public class App {
                 System.out.println(" -> " + s);
             }
         }
+        
+        // PERFORMANS ÇIKTISI 
+        System.out.println(String.format("[PERFORMANS] '%s' araması %.4f ms (%d ns) sürdü.", 
+                prefix, durationMs, duration));
     }
-}
+    }
