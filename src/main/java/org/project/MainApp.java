@@ -11,6 +11,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import org.project.model.DLB;
+import java.util.List; 
 
 public class MainApp extends Application {
 
@@ -18,6 +19,7 @@ public class MainApp extends Application {
     private ListView<String> suggestionList;
     private TextArea definitionArea;
     private Label definitionTitleLabel;
+    private Label performanceLabel;
     private DLB dlb;
 
     @Override
@@ -61,6 +63,10 @@ public class MainApp extends Application {
         listHeader.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
         listHeader.setTextFill(Color.web("#7f8c8d"));
 
+        performanceLabel = new Label("Süre: -");
+        performanceLabel.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 10));
+        performanceLabel.setTextFill(Color.web("#e74c3c"));
+
         suggestionList = new ListView<>();
         suggestionList.setPrefWidth(280);
         suggestionList.setStyle(
@@ -69,7 +75,7 @@ public class MainApp extends Application {
         );
         VBox.setVgrow(suggestionList, Priority.ALWAYS);
 
-        leftContainer.getChildren().addAll(listHeader, suggestionList);
+        leftContainer.getChildren().addAll(listHeader, performanceLabel, suggestionList);
         root.setLeft(leftContainer);
 
         // D. Orta Kısım (Tanım)
@@ -100,11 +106,34 @@ public class MainApp extends Application {
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue == null || newValue.isEmpty()) {
                 suggestionList.getItems().clear();
+                performanceLabel.setText("Süre: -"); // Temizle
             } else {
                 try {
-                    // Partnerinin suggest metoduyla aynı isimde
-                    suggestionList.getItems().setAll(dlb.suggest(newValue));
-                } catch (Exception e) {}
+                    // --- 3. KISIM: KRONOMETRE EKLENDİ ---
+                    
+                    // Başlangıç zamanı
+                    long startTime = System.nanoTime(); 
+
+                    // Partnerinin suggest metoduyla aynı isimde (Arama yapılıyor)
+                    List<String> results = dlb.suggest(newValue);
+                    
+                    // Listeyi güncelle
+                    suggestionList.getItems().setAll(results);
+                    
+                    // Bitiş zamanı
+                    long endTime = System.nanoTime();
+
+                    // Hesaplama
+                    long duration = endTime - startTime;
+                    double durationMs = duration / 1_000_000.0;
+
+                    // Label'a yazdırma
+                    String info = String.format("%d sonuç (%.4f ms)", results.size(), durationMs);
+                    performanceLabel.setText(info);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         });
 
