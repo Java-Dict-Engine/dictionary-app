@@ -11,7 +11,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import org.project.model.DLB;
-import java.util.List; 
+import java.util.List;
 
 public class MainApp extends Application {
 
@@ -22,13 +22,14 @@ public class MainApp extends Application {
     private Label performanceLabel;
     private DLB dlb;
 
+    // Listeden seçim yaparken aramanın tekrar tetiklenmesini engellemek için kontrol
+    private boolean isUpdatingFromList = false;
+
     @Override
     public void start(Stage primaryStage) {
         // --- 1. BACKEND BAĞLANTISI ---
         dlb = new DLB();
         DictionaryLoader loader = new DictionaryLoader(dlb);
-
-        // DÜZELTME YAPILDI: Checklist'e uygun olarak load() yerine loadData() çağrıldı.
         loader.loadData();
 
         // --- 2. ARAYÜZ ---
@@ -61,11 +62,12 @@ public class MainApp extends Application {
         VBox leftContainer = new VBox(10);
         Label listHeader = new Label("Sonuçlar");
         listHeader.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
-        listHeader.setTextFill(Color.web("#7f8c8d"));
+        listHeader.setTextFill(Color.web("#2980b9"));
 
+        // DÜZELTME: Rengi "Kelime Anlamı" başlığıyla aynı MAVİ (#2980b9) yaptık.
         performanceLabel = new Label("Süre: -");
-        performanceLabel.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 10));
-        performanceLabel.setTextFill(Color.web("#e74c3c"));
+        performanceLabel.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 11));
+        performanceLabel.setTextFill(Color.web("#2980b9"));
 
         suggestionList = new ListView<>();
         suggestionList.setPrefWidth(280);
@@ -84,7 +86,7 @@ public class MainApp extends Application {
 
         definitionTitleLabel = new Label("Kelime Anlamı");
         definitionTitleLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
-        definitionTitleLabel.setTextFill(Color.web("#2980b9"));
+        definitionTitleLabel.setTextFill(Color.web("#2980b9")); // Bu renkle eşledik
         definitionTitleLabel.setMaxHeight(Double.MAX_VALUE);
 
         definitionArea = new TextArea();
@@ -104,30 +106,21 @@ public class MainApp extends Application {
         // --- ETKİLEŞİM ---
 
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
+            // Eğer güncelleme listeden tıklama ile yapıldıysa tekrar arama yapma
+            if (isUpdatingFromList) return;
+
             if (newValue == null || newValue.isEmpty()) {
                 suggestionList.getItems().clear();
-                performanceLabel.setText("Süre: -"); // Temizle
+                performanceLabel.setText("Süre: -");
             } else {
                 try {
-                    // --- 3. KISIM: KRONOMETRE EKLENDİ ---
-                    
-                    // Başlangıç zamanı
-                    long startTime = System.nanoTime(); 
-
-                    // Partnerinin suggest metoduyla aynı isimde (Arama yapılıyor)
+                    long startTime = System.nanoTime();
                     List<String> results = dlb.suggest(newValue);
-                    
-                    // Listeyi güncelle
+
                     suggestionList.getItems().setAll(results);
-                    
-                    // Bitiş zamanı
+
                     long endTime = System.nanoTime();
-
-                    // Hesaplama
-                    long duration = endTime - startTime;
-                    double durationMs = duration / 1_000_000.0;
-
-                    // Label'a yazdırma
+                    double durationMs = (endTime - startTime) / 1_000_000.0;
                     String info = String.format("%d sonuç (%.4f ms)", results.size(), durationMs);
                     performanceLabel.setText(info);
 
@@ -139,9 +132,13 @@ public class MainApp extends Application {
 
         suggestionList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                // Partnerin metodunun adı: searchDefinition
-                String meaning = dlb.searchDefinition(newValue);
+                // GÖREV TAMAMLAMA: Tıklanan kelimeyi arama kutusuna yaz
+                isUpdatingFromList = true;
+                searchField.setText(newValue);
+                isUpdatingFromList = false;
 
+                // Anlamı bul ve göster
+                String meaning = dlb.searchDefinition(newValue);
                 if (meaning != null) {
                     definitionTitleLabel.setText(newValue.substring(0, 1).toUpperCase() + newValue.substring(1));
                     definitionArea.setText(meaning);
