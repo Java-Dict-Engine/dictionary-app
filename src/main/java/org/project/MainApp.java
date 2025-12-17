@@ -5,6 +5,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -146,16 +147,35 @@ public class MainApp extends Application {
             }
         });
 
+        // Yeni UX İyileştirmesi: Enter tuşuna basınca aramayı tetikle
+        searchField.setOnAction(event -> {
+            String word = searchField.getText().trim();
+            if (!word.isEmpty()) {
+                handleWordSelection(word);
+            }
+        });
+
+        // Yeni UX İyileştirmesi: Aşağı tuşu ile listeye geçiş
+        searchField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.DOWN && !suggestionList.getItems().isEmpty()) {
+                suggestionList.requestFocus();
+                suggestionList.getSelectionModel().selectFirst();
+            }
+        });
+
         suggestionList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                historyManager.addWord(newValue);
-                historyListView.getItems().setAll(historyManager.getHistory());
+                handleWordSelection(newValue);
+            }
+        });
 
-                isUpdatingFromList = true;
-                searchField.setText(newValue);
-                isUpdatingFromList = false;
-
-                showDefinition(newValue);
+        // Yeni UX İyileştirmesi: Liste üzerinde Enter ile seçim
+        suggestionList.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                String selected = suggestionList.getSelectionModel().getSelectedItem();
+                if (selected != null) {
+                    handleWordSelection(selected);
+                }
             }
         });
 
@@ -174,6 +194,23 @@ public class MainApp extends Application {
         primaryStage.setTitle("Smart Dictionary & Autocomplete");
         primaryStage.setScene(scene);
         primaryStage.show();
+    }
+
+    /**
+     * Ortak kelime seçim mantığını yürüten yardımcı metod.
+     * Klavye ve tıklama etkileşimlerini merkezi olarak yönetir.
+     * * @author Zeynep Topal
+     * @param word Seçilen veya aratılan kelime
+     */
+    private void handleWordSelection(String word) {
+        historyManager.addWord(word);
+        historyListView.getItems().setAll(historyManager.getHistory());
+
+        isUpdatingFromList = true;
+        searchField.setText(word);
+        isUpdatingFromList = false;
+
+        showDefinition(word);
     }
 
     private void showDefinition(String word) {
