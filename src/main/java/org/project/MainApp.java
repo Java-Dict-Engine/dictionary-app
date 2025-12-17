@@ -11,6 +11,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import org.project.model.DLB;
+import org.project.model.HistoryManager;
+
 import java.util.List;
 
 public class MainApp extends Application {
@@ -21,6 +23,8 @@ public class MainApp extends Application {
     private Label definitionTitleLabel;
     private Label performanceLabel;
     private DLB dlb;
+    private HistoryManager historyManager; 
+    private ListView<String> historyListView;
 
     // Listeden seçim yaparken aramanın tekrar tetiklenmesini engellemek için kontrol
     private boolean isUpdatingFromList = false;
@@ -31,6 +35,7 @@ public class MainApp extends Application {
         dlb = new DLB();
         DictionaryLoader loader = new DictionaryLoader(dlb);
         loader.loadData();
+        historyManager = new HistoryManager();
 
         // --- 2. ARAYÜZ ---
         BorderPane root = new BorderPane();
@@ -58,13 +63,29 @@ public class MainApp extends Application {
         topContainer.getChildren().addAll(titleLabel, searchField);
         root.setTop(topContainer);
 
-        // C. Sol Kısım (Liste)
+        // C. Sol Kısım (Liste ve Geçmiş)
         VBox leftContainer = new VBox(10);
+        leftContainer.setPadding(new Insets(0, 10, 0, 0));
+
+        Label historyHeader = new Label("Son Aramalar");
+        historyHeader.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
+        historyHeader.setTextFill(Color.web("#2c3e50"));
+
+        historyListView = new ListView<>();
+        historyListView.setPrefWidth(280);
+        historyListView.setPrefHeight(150);
+        historyListView.setStyle(
+                "-fx-background-radius: 10;" + "-fx-border-radius: 10;" +
+                "-fx-border-color: #ecf0f1;" + "-fx-control-inner-background: #fdfdfd;"
+        );
+
+        Separator separator = new Separator();
+        separator.setPadding(new Insets(5, 0, 5, 0));
+
         Label listHeader = new Label("Sonuçlar");
         listHeader.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
         listHeader.setTextFill(Color.web("#2980b9"));
 
-        // DÜZELTME: Rengi "Kelime Anlamı" başlığıyla aynı MAVİ (#2980b9) yaptık.
         performanceLabel = new Label("Süre: -");
         performanceLabel.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 11));
         performanceLabel.setTextFill(Color.web("#2980b9"));
@@ -73,11 +94,11 @@ public class MainApp extends Application {
         suggestionList.setPrefWidth(280);
         suggestionList.setStyle(
                 "-fx-background-radius: 10;" + "-fx-border-radius: 10;" +
-                        "-fx-border-color: #ecf0f1;" + "-fx-control-inner-background: white;"
+                "-fx-border-color: #ecf0f1;" + "-fx-control-inner-background: white;"
         );
         VBox.setVgrow(suggestionList, Priority.ALWAYS);
 
-        leftContainer.getChildren().addAll(listHeader, performanceLabel, suggestionList);
+        leftContainer.getChildren().addAll(historyHeader, historyListView, separator, listHeader, performanceLabel, suggestionList);
         root.setLeft(leftContainer);
 
         // D. Orta Kısım (Tanım)
@@ -86,8 +107,7 @@ public class MainApp extends Application {
 
         definitionTitleLabel = new Label("Kelime Anlamı");
         definitionTitleLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
-        definitionTitleLabel.setTextFill(Color.web("#2980b9")); // Bu renkle eşledik
-        definitionTitleLabel.setMaxHeight(Double.MAX_VALUE);
+        definitionTitleLabel.setTextFill(Color.web("#2980b9"));
 
         definitionArea = new TextArea();
         definitionArea.setEditable(false);
@@ -106,7 +126,6 @@ public class MainApp extends Application {
         // --- ETKİLEŞİM ---
 
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
-            // Eğer güncelleme listeden tıklama ile yapıldıysa tekrar arama yapma
             if (isUpdatingFromList) return;
 
             if (newValue == null || newValue.isEmpty()) {
@@ -116,14 +135,11 @@ public class MainApp extends Application {
                 try {
                     long startTime = System.nanoTime();
                     List<String> results = dlb.suggest(newValue);
-
                     suggestionList.getItems().setAll(results);
 
                     long endTime = System.nanoTime();
                     double durationMs = (endTime - startTime) / 1_000_000.0;
-                    String info = String.format("%d sonuç (%.4f ms)", results.size(), durationMs);
-                    performanceLabel.setText(info);
-
+                    performanceLabel.setText(String.format("%d sonuç (%.4f ms)", results.size(), durationMs));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -132,19 +148,24 @@ public class MainApp extends Application {
 
         suggestionList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                // GÖREV TAMAMLAMA: Tıklanan kelimeyi arama kutusuna yaz
+                historyManager.addWord(newValue);
+                historyListView.getItems().setAll(historyManager.getHistory());
+
                 isUpdatingFromList = true;
                 searchField.setText(newValue);
                 isUpdatingFromList = false;
 
-                // Anlamı bul ve göster
-                String meaning = dlb.searchDefinition(newValue);
-                if (meaning != null) {
-                    definitionTitleLabel.setText(newValue.substring(0, 1).toUpperCase() + newValue.substring(1));
-                    definitionArea.setText(meaning);
-                } else {
-                    definitionArea.setText("Anlam bulunamadı.");
-                }
+                showDefinition(newValue);
+            }
+        });
+
+        historyListView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                isUpdatingFromList = true;
+                searchField.setText(newValue);
+                isUpdatingFromList = false;
+                
+                showDefinition(newValue);
             }
         });
 
@@ -153,6 +174,16 @@ public class MainApp extends Application {
         primaryStage.setTitle("Smart Dictionary & Autocomplete");
         primaryStage.setScene(scene);
         primaryStage.show();
+    }
+
+    private void showDefinition(String word) {
+        String meaning = dlb.searchDefinition(word);
+        if (meaning != null) {
+            definitionTitleLabel.setText(word.substring(0, 1).toUpperCase() + word.substring(1));
+            definitionArea.setText(meaning);
+        } else {
+            definitionArea.setText("Anlam bulunamadı.");
+        }
     }
 
     public static void main(String[] args) {
