@@ -7,9 +7,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import org.project.model.DLB;
 import org.project.model.HistoryManager;
@@ -21,141 +18,126 @@ public class MainApp extends Application {
     private TextField searchField;
     private ListView<String> suggestionList;
     private TextArea definitionArea;
-    private Label definitionTitleLabel;
+    private Label wordTitleLabel; // Seçilen kelimeyi dev gibi göstermek için
     private Label performanceLabel;
     private DLB dlb;
-    private HistoryManager historyManager; 
+    private HistoryManager historyManager;
     private ListView<String> historyListView;
 
-    // Listeden seçim yaparken aramanın tekrar tetiklenmesini engellemek için kontrol
     private boolean isUpdatingFromList = false;
 
     @Override
     public void start(Stage primaryStage) {
-        // --- 1. BACKEND BAĞLANTISI ---
+        // --- 1. BACKEND ---
         dlb = new DLB();
         DictionaryLoader loader = new DictionaryLoader(dlb);
         loader.loadData();
         historyManager = new HistoryManager();
 
-        // --- 2. ARAYÜZ ---
+        // --- 2. LAYOUT ---
         BorderPane root = new BorderPane();
-        root.setStyle("-fx-background-color: #f4f4f4;");
-        root.setPadding(new Insets(20));
+        root.setPadding(new Insets(30)); // Pencere kenarlarından boşluk
 
-        // B. Üst Kısım
-        VBox topContainer = new VBox(15);
-        topContainer.setPadding(new Insets(0, 0, 20, 0));
+        // --- A. Üst Kısım (Header + Arama) ---
+        VBox topContainer = new VBox(20);
         topContainer.setAlignment(Pos.CENTER);
+        topContainer.setPadding(new Insets(0, 0, 30, 0));
 
         Label titleLabel = new Label("Smart Dictionary");
-        titleLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 26));
-        titleLabel.setTextFill(Color.web("#2c3e50"));
+        titleLabel.getStyleClass().add("app-title");
 
         searchField = new TextField();
-        searchField.setPromptText("Kelime aramaya başlayın...");
-        searchField.setPrefHeight(45);
-        searchField.setStyle(
-                "-fx-background-radius: 15;" + "-fx-border-radius: 15;" +
-                        "-fx-border-color: #bdc3c7;" + "-fx-padding: 0 15 0 15;" +
-                        "-fx-font-size: 14px;"
-        );
+        searchField.setPromptText("Kelime ara...");
+        searchField.setPrefHeight(50);
+        searchField.setMaxWidth(600); // Arama kutusu çok uzamasın
+        searchField.getStyleClass().add("search-field");
 
         topContainer.getChildren().addAll(titleLabel, searchField);
         root.setTop(topContainer);
 
-        // C. Sol Kısım (Liste ve Geçmiş)
-        VBox leftContainer = new VBox(10);
-        leftContainer.setPadding(new Insets(0, 10, 0, 0));
+        // --- B. Sol Kısım (Yan Panel Kartı) ---
+        // Geçmiş ve Sonuçları tek bir "Kart" içine koyuyoruz
+        VBox sidebarCard = new VBox(10);
+        sidebarCard.getStyleClass().add("card"); // CSS'deki kart stili
+        sidebarCard.setPrefWidth(300);
+        sidebarCard.setMinWidth(250);
 
-        Label historyHeader = new Label("Son Aramalar");
-        historyHeader.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
-        historyHeader.setTextFill(Color.web("#2c3e50"));
+        // 1. Geçmiş Bölümü
+        Label historyHeader = new Label("GEÇMİŞ ARAMALAR");
+        historyHeader.getStyleClass().add("section-title");
 
         historyListView = new ListView<>();
-        historyListView.setPrefWidth(280);
         historyListView.setPrefHeight(150);
-        historyListView.setStyle(
-                "-fx-background-radius: 10;" + "-fx-border-radius: 10;" +
-                "-fx-border-color: #ecf0f1;" + "-fx-control-inner-background: #fdfdfd;"
-        );
+        historyListView.setPlaceholder(new Label("-"));
+        historyListView.getItems().setAll(historyManager.getHistory());
 
-        Separator separator = new Separator();
-        separator.setPadding(new Insets(5, 0, 5, 0));
+        // 2. Sonuçlar Bölümü
+        HBox resultsHeaderBox = new HBox(10);
+        resultsHeaderBox.setAlignment(Pos.CENTER_LEFT);
+        Label listHeader = new Label("SONUÇLAR");
+        listHeader.getStyleClass().add("section-title");
 
-        Label listHeader = new Label("Sonuçlar");
-        listHeader.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
-        listHeader.setTextFill(Color.web("#2980b9"));
-
-        performanceLabel = new Label("Süre: -");
-        performanceLabel.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 11));
-        performanceLabel.setTextFill(Color.web("#2980b9"));
+        performanceLabel = new Label("");
+        performanceLabel.getStyleClass().add("time-label");
+        resultsHeaderBox.getChildren().addAll(listHeader, performanceLabel);
 
         suggestionList = new ListView<>();
-        suggestionList.setPrefWidth(280);
-        suggestionList.setStyle(
-                "-fx-background-radius: 10;" + "-fx-border-radius: 10;" +
-                "-fx-border-color: #ecf0f1;" + "-fx-control-inner-background: white;"
-        );
-        VBox.setVgrow(suggestionList, Priority.ALWAYS);
+        VBox.setVgrow(suggestionList, Priority.ALWAYS); // Kalan yeri bu liste doldursun
 
-        leftContainer.getChildren().addAll(historyHeader, historyListView, separator, listHeader, performanceLabel, suggestionList);
-        root.setLeft(leftContainer);
+        sidebarCard.getChildren().addAll(historyHeader, historyListView, new Separator(), resultsHeaderBox, suggestionList);
 
-        // D. Orta Kısım (Tanım)
-        VBox centerContainer = new VBox(10);
-        centerContainer.setPadding(new Insets(0, 0, 0, 20));
+        // Yan paneli Root'a ekle (Sağından biraz boşluk bırakarak)
+        BorderPane.setMargin(sidebarCard, new Insets(0, 20, 0, 0));
+        root.setLeft(sidebarCard);
 
-        definitionTitleLabel = new Label("Kelime Anlamı");
-        definitionTitleLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
-        definitionTitleLabel.setTextFill(Color.web("#2980b9"));
+        // --- C. Orta Kısım (Tanım Kartı) ---
+        VBox definitionCard = new VBox(15);
+        definitionCard.getStyleClass().add("card"); // Bu da bir kart
+        definitionCard.setPadding(new Insets(30));  // İçerik ferah olsun
 
+        // Büyük Kelime Başlığı
+        wordTitleLabel = new Label("Kelime Anlamı");
+        wordTitleLabel.getStyleClass().add("word-title");
+
+        // Anlam Alanı
         definitionArea = new TextArea();
         definitionArea.setEditable(false);
         definitionArea.setWrapText(true);
         definitionArea.setText("Listeden bir kelime seçtiğinizde detaylar burada görünecek.");
-        definitionArea.setStyle(
-                "-fx-background-color: transparent;" + "-fx-background-radius: 10;" +
-                        "-fx-border-radius: 10;" + "-fx-border-color: #bdc3c7;" +
-                        "-fx-font-family: 'Segoe UI';" + "-fx-font-size: 16px;"
-        );
+        definitionArea.getStyleClass().add("definition-area"); // CSS
+
+        // TextArea'nın devasa görünmesini engellemek için Vgrow kullanıyoruz ama
+        // CSS ile arkaplanını şeffaf yaptığımız için "boşluk" göze batmayacak.
         VBox.setVgrow(definitionArea, Priority.ALWAYS);
 
-        centerContainer.getChildren().addAll(definitionTitleLabel, definitionArea);
-        root.setCenter(centerContainer);
+        definitionCard.getChildren().addAll(wordTitleLabel, definitionArea);
+        root.setCenter(definitionCard);
 
-        // --- ETKİLEŞİM ---
+        // --- ETKİLEŞİM VE OLAYLAR (GÜNCELLENDİ) ---
 
+        // 1. Arama yapıldığında
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
             if (isUpdatingFromList) return;
 
             if (newValue == null || newValue.isEmpty()) {
                 suggestionList.getItems().clear();
-                performanceLabel.setText("Süre: -");
+                performanceLabel.setText("");
             } else {
-                try {
-                    long startTime = System.nanoTime();
-                    List<String> results = dlb.suggest(newValue);
-                    suggestionList.getItems().setAll(results);
-
-                    long endTime = System.nanoTime();
-                    double durationMs = (endTime - startTime) / 1_000_000.0;
-                    performanceLabel.setText(String.format("%d sonuç (%.4f ms)", results.size(), durationMs));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                long start = System.nanoTime();
+                List<String> results = dlb.suggest(newValue);
+                suggestionList.getItems().setAll(results);
+                long end = System.nanoTime();
+                performanceLabel.setText(String.format("%.2f ms", (end - start) / 1e6));
             }
         });
 
-        // Yeni UX İyileştirmesi: Enter tuşuna basınca aramayı tetikle
-        searchField.setOnAction(event -> {
-            String word = searchField.getText().trim();
-            if (!word.isEmpty()) {
-                handleWordSelection(word);
-            }
+        // 2. Arama kutusunda ENTER'a basınca aramayı tamamla
+        searchField.setOnAction(e -> {
+            String w = searchField.getText().trim();
+            if(!w.isEmpty()) handleWordSelection(w);
         });
 
-        // Yeni UX İyileştirmesi: Aşağı tuşu ile listeye geçiş
+        // 3. [EKLENDİ] Arama kutusunda AŞAĞI OK (DOWN) tuşuna basınca listeye geç
         searchField.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.DOWN && !suggestionList.getItems().isEmpty()) {
                 suggestionList.requestFocus();
@@ -163,46 +145,39 @@ public class MainApp extends Application {
             }
         });
 
-        suggestionList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                handleWordSelection(newValue);
-            }
-        });
-
-        // Yeni UX İyileştirmesi: Liste üzerinde Enter ile seçim
+        // 4. [EKLENDİ] Listede ENTER tuşuna basınca kelimeyi seç
         suggestionList.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER) {
                 String selected = suggestionList.getSelectionModel().getSelectedItem();
-                if (selected != null) {
-                    handleWordSelection(selected);
-                }
+                if (selected != null) handleWordSelection(selected);
             }
         });
 
-        historyListView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                isUpdatingFromList = true;
-                searchField.setText(newValue);
-                isUpdatingFromList = false;
-                
-                showDefinition(newValue);
-            }
+        // 5. Mouse Tıklamaları (Liste Seçimleri)
+        suggestionList.getSelectionModel().selectedItemProperty().addListener((o, old, newVal) -> {
+            if(newVal != null) handleWordSelection(newVal);
+        });
+
+        historyListView.getSelectionModel().selectedItemProperty().addListener((o, old, newVal) -> {
+            if(newVal != null) handleWordSelection(newVal);
         });
 
         // --- SAHNE ---
-        Scene scene = new Scene(root, 900, 600);
-        primaryStage.setTitle("Smart Dictionary & Autocomplete");
+        Scene scene = new Scene(root, 1000, 700);
+        try {
+            scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
+        } catch (Exception e) {
+            System.err.println("CSS Yüklenemedi! Dosya konumunu kontrol edin.");
+        }
+
+        primaryStage.setTitle("Smart Dictionary");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
 
-    /**
-     * Ortak kelime seçim mantığını yürüten yardımcı metod.
-     * Klavye ve tıklama etkileşimlerini merkezi olarak yönetir.
-     * * @author Zeynep Topal
-     * @param word Seçilen veya aratılan kelime
-     */
     private void handleWordSelection(String word) {
+        if (word == null || word.isEmpty()) return;
+
         historyManager.addWord(word);
         historyListView.getItems().setAll(historyManager.getHistory());
 
@@ -210,17 +185,12 @@ public class MainApp extends Application {
         searchField.setText(word);
         isUpdatingFromList = false;
 
-        showDefinition(word);
-    }
+        // Başlığı güncelle
+        wordTitleLabel.setText(word.substring(0, 1).toUpperCase() + word.substring(1));
 
-    private void showDefinition(String word) {
+        // Anlamı güncelle
         String meaning = dlb.searchDefinition(word);
-        if (meaning != null) {
-            definitionTitleLabel.setText(word.substring(0, 1).toUpperCase() + word.substring(1));
-            definitionArea.setText(meaning);
-        } else {
-            definitionArea.setText("Anlam bulunamadı.");
-        }
+        definitionArea.setText(meaning != null ? meaning : "Üzgünüm, bu kelimenin anlamı sözlükte bulunamadı.");
     }
 
     public static void main(String[] args) {
