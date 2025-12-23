@@ -47,7 +47,7 @@ public class MainApp extends Application {
         titleLabel.getStyleClass().add("app-title");
 
         searchField = new TextField();
-        searchField.setPromptText("Kelime ara...");
+        searchField.setPromptText("Search for a word..."); // İNGİLİZCE: Prompt
         searchField.setPrefHeight(50);
         searchField.setMaxWidth(600); // Arama kutusu çok uzamasın
         searchField.getStyleClass().add("search-field");
@@ -63,18 +63,18 @@ public class MainApp extends Application {
         sidebarCard.setMinWidth(250);
 
         // 1. Geçmiş Bölümü
-        Label historyHeader = new Label("GEÇMİŞ ARAMALAR");
+        Label historyHeader = new Label("SEARCH HISTORY"); // İNGİLİZCE: Başlık
         historyHeader.getStyleClass().add("section-title");
 
         historyListView = new ListView<>();
         historyListView.setPrefHeight(150);
-        historyListView.setPlaceholder(new Label("-"));
+        historyListView.setPlaceholder(new Label("No History")); // İNGİLİZCE: Boş durum
         historyListView.getItems().setAll(historyManager.getHistory());
 
         // 2. Sonuçlar Bölümü
         HBox resultsHeaderBox = new HBox(10);
         resultsHeaderBox.setAlignment(Pos.CENTER_LEFT);
-        Label listHeader = new Label("SONUÇLAR");
+        Label listHeader = new Label("RESULTS"); // İNGİLİZCE: Başlık
         listHeader.getStyleClass().add("section-title");
 
         performanceLabel = new Label("");
@@ -95,15 +95,16 @@ public class MainApp extends Application {
         definitionCard.getStyleClass().add("card"); // Bu da bir kart
         definitionCard.setPadding(new Insets(30));  // İçerik ferah olsun
 
-        // Büyük Kelime Başlığı
-        wordTitleLabel = new Label("Kelime Anlamı");
+        // Büyük Kelime Başlığı (Başlangıçta "Definition" yazar)
+        wordTitleLabel = new Label("Definition"); // İNGİLİZCE: Başlık
         wordTitleLabel.getStyleClass().add("word-title");
 
         // Anlam Alanı
         definitionArea = new TextArea();
         definitionArea.setEditable(false);
         definitionArea.setWrapText(true);
-        definitionArea.setText("Listeden bir kelime seçtiğinizde detaylar burada görünecek.");
+        // İNGİLİZCE: Varsayılan mesaj
+        definitionArea.setText("Select a word from the list to view details.");
         definitionArea.getStyleClass().add("definition-area"); // CSS
 
         // TextArea'nın devasa görünmesini engellemek için Vgrow kullanıyoruz ama
@@ -113,7 +114,7 @@ public class MainApp extends Application {
         definitionCard.getChildren().addAll(wordTitleLabel, definitionArea);
         root.setCenter(definitionCard);
 
-        // --- ETKİLEŞİM VE OLAYLAR (GÜNCELLENDİ) ---
+        // --- ETKİLEŞİM VE OLAYLAR ---
 
         // 1. Arama yapıldığında
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -137,7 +138,7 @@ public class MainApp extends Application {
             if(!w.isEmpty()) handleWordSelection(w);
         });
 
-        // 3. [EKLENDİ] Arama kutusunda AŞAĞI OK (DOWN) tuşuna basınca listeye geç
+        // 3. Arama kutusunda AŞAĞI OK (DOWN) tuşuna basınca listeye geç
         searchField.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.DOWN && !suggestionList.getItems().isEmpty()) {
                 suggestionList.requestFocus();
@@ -145,7 +146,7 @@ public class MainApp extends Application {
             }
         });
 
-        // 4. [EKLENDİ] Listede ENTER tuşuna basınca kelimeyi seç
+        // 4. Listede ENTER tuşuna basınca kelimeyi seç
         suggestionList.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER) {
                 String selected = suggestionList.getSelectionModel().getSelectedItem();
@@ -190,7 +191,8 @@ public class MainApp extends Application {
 
         // Anlamı güncelle
         String meaning = dlb.searchDefinition(word);
-        definitionArea.setText(meaning != null ? meaning : "Üzgünüm, bu kelimenin anlamı sözlükte bulunamadı.");
+        // İNGİLİZCE: Hata mesajı
+        definitionArea.setText(meaning != null ? meaning : "Sorry, definition not found.");
     }
 
     public static void main(String[] args) {
