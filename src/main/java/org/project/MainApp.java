@@ -1,7 +1,8 @@
 package org.project;
 
+import org.project.util.SortUtil;
 import javafx.application.Application;
-import javafx.application.Platform; // EKLENDİ: Hata düzeltmesi için gerekli
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -11,35 +12,41 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import org.project.model.DLB;
 import org.project.model.HistoryManager;
-
 import java.util.List;
 
 public class MainApp extends Application {
 
+    // Arayüz Bileşenleri
     private TextField searchField;
     private ListView<String> suggestionList;
     private TextArea definitionArea;
     private Label wordTitleLabel;
     private Label performanceLabel;
-    private DLB dlb;
-    private HistoryManager historyManager;
     private ListView<String> historyListView;
 
+    // Model ve Yardımcı Sınıflar
+    private DLB dlb;
+    private HistoryManager historyManager;
+
+    // Listeden seçim yapıldığında tekrar aramayı tetiklememek için bayrak
     private boolean isUpdatingFromList = false;
 
     @Override
     public void start(Stage primaryStage) {
-        // --- 1. BACKEND ---
+        // --- 1. BACKEND BAŞLATMA ---
         dlb = new DLB();
-        DictionaryLoader loader = new DictionaryLoader(dlb);
-        loader.loadData();
+        
+        // JSON verisi yükleme
+        DictionaryLoader loader = new DictionaryLoader(dlb); 
+        loader.loadData(); 
+        
         historyManager = new HistoryManager();
 
-        // --- 2. LAYOUT ---
+        // --- 2. ARAYÜZ DÜZENİ (LAYOUT) ---
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(30));
 
-        // --- A. Üst Kısım (Header + Arama) ---
+        // --- A. Üst Kısım (Header + Arama Çubuğu) ---
         VBox topContainer = new VBox(20);
         topContainer.setAlignment(Pos.CENTER);
         topContainer.setPadding(new Insets(0, 0, 30, 0));
@@ -56,13 +63,13 @@ public class MainApp extends Application {
         topContainer.getChildren().addAll(titleLabel, searchField);
         root.setTop(topContainer);
 
-        // --- B. Sol Kısım (Yan Panel Kartı) ---
+        // --- B. Sol Kısım (Geçmiş ve Sonuçlar Paneli) ---
         VBox sidebarCard = new VBox(10);
         sidebarCard.getStyleClass().add("card");
         sidebarCard.setPrefWidth(300);
         sidebarCard.setMinWidth(250);
 
-        // 1. Geçmiş Bölümü
+        // 1. Geçmiş (History)
         Label historyHeader = new Label("SEARCH HISTORY");
         historyHeader.getStyleClass().add("section-title");
 
@@ -71,13 +78,13 @@ public class MainApp extends Application {
         historyListView.setPlaceholder(new Label("No History"));
         historyListView.getItems().setAll(historyManager.getHistory());
 
-        // 2. Sonuçlar Bölümü
+        // 2. Sonuçlar (Results)
         HBox resultsHeaderBox = new HBox(10);
         resultsHeaderBox.setAlignment(Pos.CENTER_LEFT);
         Label listHeader = new Label("RESULTS");
         listHeader.getStyleClass().add("section-title");
 
-        performanceLabel = new Label("");
+        performanceLabel = new Label(""); 
         performanceLabel.getStyleClass().add("time-label");
         resultsHeaderBox.getChildren().addAll(listHeader, performanceLabel);
 
@@ -106,42 +113,45 @@ public class MainApp extends Application {
         definitionCard.getChildren().addAll(wordTitleLabel, definitionArea);
         root.setCenter(definitionCard);
 
-        // --- ETKİLEŞİM VE OLAYLAR ---
+        // --- 3. ETKİLEŞİM VE OLAYLAR (EVENTS) ---
 
-        // 1. Arama yapıldığında (DÜZELTME UYGULANDI)
+        // 3.1. Arama kutusuna yazı yazıldığında (DÜZELTİLMİŞ KISIM)
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (isUpdatingFromList) return;
+            // Eğer güncelleme kod tarafından yapılıyorsa (listeden seçince), arama yapma
+            if (isUpdatingFromList) return; 
 
             if (newValue == null || newValue.isEmpty()) {
                 suggestionList.getItems().clear();
                 performanceLabel.setText("");
             } else {
-                // Hesaplamayı yap
                 long start = System.nanoTime();
-                List<String> results = dlb.suggest(newValue);
+                
+                // 1. DLB'den veriyi çek
+                List<String> results = dlb.suggest(newValue); 
+                
+                // 2. SIRALAMA (SortUtil Entegrasyonu)
+                // "LENGTH" -> Önce kısa kelimeler, sonra uzunlar (MergeSort)
+                // "AZ" -> Alfabetik (QuickSort)
+                SortUtil.sort(results, "LENGTH"); 
+
                 long end = System.nanoTime();
 
-                // UI güncellemesini sıraya koy (Hata vermemesi için)
+                // UI Güncellemesi (Main Thread'de çalışmalı)
                 Platform.runLater(() -> {
-                    // Önceki seçimi temizle ki index hatası vermesin
                     suggestionList.getSelectionModel().clearSelection();
-
-                    // Yeni listeyi yükle
                     suggestionList.getItems().setAll(results);
-
-                    // Süreyi yaz
                     performanceLabel.setText(String.format("%.2f ms", (end - start) / 1e6));
                 });
             }
         });
 
-        // 2. Arama kutusunda ENTER
+        // 3.2. Arama kutusunda ENTER
         searchField.setOnAction(e -> {
             String w = searchField.getText().trim();
             if(!w.isEmpty()) handleWordSelection(w);
         });
 
-        // 3. Arama kutusunda AŞAĞI OK (DOWN)
+        // 3.3. Arama kutusunda AŞAĞI OK (Listeye odaklan)
         searchField.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.DOWN && !suggestionList.getItems().isEmpty()) {
                 suggestionList.requestFocus();
@@ -149,7 +159,7 @@ public class MainApp extends Application {
             }
         });
 
-        // 4. Listede ENTER
+        // 3.4. Sonuç Listesinde ENTER
         suggestionList.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER) {
                 String selected = suggestionList.getSelectionModel().getSelectedItem();
@@ -157,21 +167,27 @@ public class MainApp extends Application {
             }
         });
 
-        // 5. Mouse Tıklamaları
+        // 3.5. Fare Tıklamaları (Sonuç Listesi)
         suggestionList.getSelectionModel().selectedItemProperty().addListener((o, old, newVal) -> {
             if(newVal != null) handleWordSelection(newVal);
         });
 
+        // 3.6. Fare Tıklamaları (Geçmiş Listesi)
         historyListView.getSelectionModel().selectedItemProperty().addListener((o, old, newVal) -> {
             if(newVal != null) handleWordSelection(newVal);
         });
 
-        // --- SAHNE ---
+        // --- 4. SAHNE AYARLARI ---
         Scene scene = new Scene(root, 1000, 700);
+        
         try {
-            scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
+            if (getClass().getResource("/style.css") != null) {
+                scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
+            } else {
+                System.err.println("Uyarı: style.css dosyası resources kök dizininde bulunamadı.");
+            }
         } catch (Exception e) {
-            System.err.println("CSS Yüklenemedi! Dosya konumunu kontrol edin.");
+            System.err.println("CSS yüklenirken hata oluştu: " + e.getMessage());
         }
 
         primaryStage.setTitle("Smart Dictionary");
@@ -179,16 +195,25 @@ public class MainApp extends Application {
         primaryStage.show();
     }
 
+    /**
+     * Bir kelime seçildiğinde yapılacak işlemler:
+     * 1. Geçmişe ekle
+     * 2. Arama kutusunu güncelle
+     * 3. Tanımı getir ve göster
+     */
     private void handleWordSelection(String word) {
         if (word == null || word.isEmpty()) return;
 
+        // Geçmişi güncelle
         historyManager.addWord(word);
         historyListView.getItems().setAll(historyManager.getHistory());
 
+        // Arama kutusunu güncelle (Listener'ı tetiklemeden)
         isUpdatingFromList = true;
         searchField.setText(word);
         isUpdatingFromList = false;
 
+        // Başlık ve Tanımı güncelle
         wordTitleLabel.setText(word.substring(0, 1).toUpperCase() + word.substring(1));
 
         String meaning = dlb.searchDefinition(word);
