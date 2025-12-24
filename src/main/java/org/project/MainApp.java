@@ -1,6 +1,7 @@
 package org.project;
 
 import javafx.application.Application;
+import javafx.application.Platform; // EKLENDİ: Hata düzeltmesi için gerekli
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -18,7 +19,7 @@ public class MainApp extends Application {
     private TextField searchField;
     private ListView<String> suggestionList;
     private TextArea definitionArea;
-    private Label wordTitleLabel; // Seçilen kelimeyi dev gibi göstermek için
+    private Label wordTitleLabel;
     private Label performanceLabel;
     private DLB dlb;
     private HistoryManager historyManager;
@@ -36,7 +37,7 @@ public class MainApp extends Application {
 
         // --- 2. LAYOUT ---
         BorderPane root = new BorderPane();
-        root.setPadding(new Insets(30)); // Pencere kenarlarından boşluk
+        root.setPadding(new Insets(30));
 
         // --- A. Üst Kısım (Header + Arama) ---
         VBox topContainer = new VBox(20);
@@ -47,34 +48,33 @@ public class MainApp extends Application {
         titleLabel.getStyleClass().add("app-title");
 
         searchField = new TextField();
-        searchField.setPromptText("Search for a word..."); // İNGİLİZCE: Prompt
+        searchField.setPromptText("Search for a word...");
         searchField.setPrefHeight(50);
-        searchField.setMaxWidth(600); // Arama kutusu çok uzamasın
+        searchField.setMaxWidth(600);
         searchField.getStyleClass().add("search-field");
 
         topContainer.getChildren().addAll(titleLabel, searchField);
         root.setTop(topContainer);
 
         // --- B. Sol Kısım (Yan Panel Kartı) ---
-        // Geçmiş ve Sonuçları tek bir "Kart" içine koyuyoruz
         VBox sidebarCard = new VBox(10);
-        sidebarCard.getStyleClass().add("card"); // CSS'deki kart stili
+        sidebarCard.getStyleClass().add("card");
         sidebarCard.setPrefWidth(300);
         sidebarCard.setMinWidth(250);
 
         // 1. Geçmiş Bölümü
-        Label historyHeader = new Label("SEARCH HISTORY"); // İNGİLİZCE: Başlık
+        Label historyHeader = new Label("SEARCH HISTORY");
         historyHeader.getStyleClass().add("section-title");
 
         historyListView = new ListView<>();
         historyListView.setPrefHeight(150);
-        historyListView.setPlaceholder(new Label("No History")); // İNGİLİZCE: Boş durum
+        historyListView.setPlaceholder(new Label("No History"));
         historyListView.getItems().setAll(historyManager.getHistory());
 
         // 2. Sonuçlar Bölümü
         HBox resultsHeaderBox = new HBox(10);
         resultsHeaderBox.setAlignment(Pos.CENTER_LEFT);
-        Label listHeader = new Label("RESULTS"); // İNGİLİZCE: Başlık
+        Label listHeader = new Label("RESULTS");
         listHeader.getStyleClass().add("section-title");
 
         performanceLabel = new Label("");
@@ -82,33 +82,25 @@ public class MainApp extends Application {
         resultsHeaderBox.getChildren().addAll(listHeader, performanceLabel);
 
         suggestionList = new ListView<>();
-        VBox.setVgrow(suggestionList, Priority.ALWAYS); // Kalan yeri bu liste doldursun
+        VBox.setVgrow(suggestionList, Priority.ALWAYS);
 
         sidebarCard.getChildren().addAll(historyHeader, historyListView, new Separator(), resultsHeaderBox, suggestionList);
-
-        // Yan paneli Root'a ekle (Sağından biraz boşluk bırakarak)
         BorderPane.setMargin(sidebarCard, new Insets(0, 20, 0, 0));
         root.setLeft(sidebarCard);
 
         // --- C. Orta Kısım (Tanım Kartı) ---
         VBox definitionCard = new VBox(15);
-        definitionCard.getStyleClass().add("card"); // Bu da bir kart
-        definitionCard.setPadding(new Insets(30));  // İçerik ferah olsun
+        definitionCard.getStyleClass().add("card");
+        definitionCard.setPadding(new Insets(30));
 
-        // Büyük Kelime Başlığı (Başlangıçta "Definition" yazar)
-        wordTitleLabel = new Label("Definition"); // İNGİLİZCE: Başlık
+        wordTitleLabel = new Label("Definition");
         wordTitleLabel.getStyleClass().add("word-title");
 
-        // Anlam Alanı
         definitionArea = new TextArea();
         definitionArea.setEditable(false);
         definitionArea.setWrapText(true);
-        // İNGİLİZCE: Varsayılan mesaj
         definitionArea.setText("Select a word from the list to view details.");
-        definitionArea.getStyleClass().add("definition-area"); // CSS
-
-        // TextArea'nın devasa görünmesini engellemek için Vgrow kullanıyoruz ama
-        // CSS ile arkaplanını şeffaf yaptığımız için "boşluk" göze batmayacak.
+        definitionArea.getStyleClass().add("definition-area");
         VBox.setVgrow(definitionArea, Priority.ALWAYS);
 
         definitionCard.getChildren().addAll(wordTitleLabel, definitionArea);
@@ -116,7 +108,7 @@ public class MainApp extends Application {
 
         // --- ETKİLEŞİM VE OLAYLAR ---
 
-        // 1. Arama yapıldığında
+        // 1. Arama yapıldığında (DÜZELTME UYGULANDI)
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
             if (isUpdatingFromList) return;
 
@@ -124,21 +116,32 @@ public class MainApp extends Application {
                 suggestionList.getItems().clear();
                 performanceLabel.setText("");
             } else {
+                // Hesaplamayı yap
                 long start = System.nanoTime();
                 List<String> results = dlb.suggest(newValue);
-                suggestionList.getItems().setAll(results);
                 long end = System.nanoTime();
-                performanceLabel.setText(String.format("%.2f ms", (end - start) / 1e6));
+
+                // UI güncellemesini sıraya koy (Hata vermemesi için)
+                Platform.runLater(() -> {
+                    // Önceki seçimi temizle ki index hatası vermesin
+                    suggestionList.getSelectionModel().clearSelection();
+
+                    // Yeni listeyi yükle
+                    suggestionList.getItems().setAll(results);
+
+                    // Süreyi yaz
+                    performanceLabel.setText(String.format("%.2f ms", (end - start) / 1e6));
+                });
             }
         });
 
-        // 2. Arama kutusunda ENTER'a basınca aramayı tamamla
+        // 2. Arama kutusunda ENTER
         searchField.setOnAction(e -> {
             String w = searchField.getText().trim();
             if(!w.isEmpty()) handleWordSelection(w);
         });
 
-        // 3. Arama kutusunda AŞAĞI OK (DOWN) tuşuna basınca listeye geç
+        // 3. Arama kutusunda AŞAĞI OK (DOWN)
         searchField.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.DOWN && !suggestionList.getItems().isEmpty()) {
                 suggestionList.requestFocus();
@@ -146,7 +149,7 @@ public class MainApp extends Application {
             }
         });
 
-        // 4. Listede ENTER tuşuna basınca kelimeyi seç
+        // 4. Listede ENTER
         suggestionList.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER) {
                 String selected = suggestionList.getSelectionModel().getSelectedItem();
@@ -154,7 +157,7 @@ public class MainApp extends Application {
             }
         });
 
-        // 5. Mouse Tıklamaları (Liste Seçimleri)
+        // 5. Mouse Tıklamaları
         suggestionList.getSelectionModel().selectedItemProperty().addListener((o, old, newVal) -> {
             if(newVal != null) handleWordSelection(newVal);
         });
@@ -186,12 +189,9 @@ public class MainApp extends Application {
         searchField.setText(word);
         isUpdatingFromList = false;
 
-        // Başlığı güncelle
         wordTitleLabel.setText(word.substring(0, 1).toUpperCase() + word.substring(1));
 
-        // Anlamı güncelle
         String meaning = dlb.searchDefinition(word);
-        // İNGİLİZCE: Hata mesajı
         definitionArea.setText(meaning != null ? meaning : "Sorry, definition not found.");
     }
 
