@@ -40,9 +40,8 @@ public class DictionaryLoader {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             Gson gson = new Gson();
 
-            // DEĞİŞİKLİK BURADA:
-            // JSON artık bir Liste ([...]) değil, bir Harita ({ "word": "def", ... })
-            // Bu yüzden TypeToken'ı Map<String, String> yaptık.
+
+
             Type mapType = new TypeToken<Map<String, String>>(){}.getType();
             Map<String, String> dictionaryMap = gson.fromJson(reader, mapType);
 
@@ -76,6 +75,5 @@ public class DictionaryLoader {
         }
     }
 
-    // NOT: Eski 'DictionaryEntry' sınıfını sildik çünkü yeni JSON formatında
-    // verilere doğrudan Map üzerinden (Key-Value) erişiyoruz.
+
 }

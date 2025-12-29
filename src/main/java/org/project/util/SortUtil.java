@@ -5,8 +5,7 @@ import java.util.List;
 
 public class SortUtil {
 
-    // MainApp'ten çağıracağımız TEK metod bu olacak.
-    // Algoritmayı seçimi burada yapılır.
+
     public static void sort(List<String> list, String strategy) {
         if (list == null || list.size() < 2) return;
 

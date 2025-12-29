@@ -23,7 +23,7 @@ public class DLB {
      * @param type       Kelimenin türü (örn: "noun")
      */
     
-    //kelime ekleme metodu
+
     public void add(String word, String definition, String type) {
         if(word == null || word.isEmpty()) return;
         
@@ -33,7 +33,7 @@ public class DLB {
         for(int i = 0; i < word.length(); i++) {
             char c = word.charAt(i);
             
-            // 1. ADIM: Mevcut düğümün çocuğuna bak (Alt seviyeye in)
+            // Mevcut düğümün çocuğuna bak (Alt seviyeye in)
             DLBNode child = currentNode.getChild();
             
             // Eğer hiç çocuk yoksa, hemen bu harfi çocuk olarak ekle
@@ -56,7 +56,7 @@ public class DLB {
                 }
             }
             
-            // 2. ADIM: Artık harfi bulduk veya oluşturduk. Oraya ilerle.
+            // Artık harfi bulduk veya oluşturduk. Oraya ilerle.
             currentNode = child;
         }
         
@@ -72,7 +72,7 @@ public class DLB {
      * @return Kelimenin tanımı (String). Kelime yoksa null döner.
      */
     
-    // --- ARAMA METODU ---
+    // ARAMA METODU
     public String searchDefinition(String word) {
         if (word == null || word.isEmpty()) return null;
 
@@ -117,7 +117,7 @@ public class DLB {
 
         DLBNode currentNode = root;
 
-        // 1. Adım: Prefix'in sonuna kadar ağaçta ilerle
+        // 1. Prefix'in sonuna kadar ağaçta ilerle
         // (Bu kısım search mantığıyla aynı)
         for (int i = 0; i < prefix.length(); i++) {
             char c = prefix.charAt(i);
@@ -133,13 +133,12 @@ public class DLB {
             currentNode = child;
         }
 
-        // 2. Adım: Eğer prefix'in kendisi de bir kelimeyse listeye ekle
-        // Örn: "pan" aradık, "pan" diye bir kelime de var.
+        // 2. Eğer prefix'in kendisi de bir kelimeyse listeye ekle
         if (currentNode.isWordEnd()) {
             suggestions.add(prefix);
         }
 
-        // 3. Adım: Bu noktadan sonraki tüm olasılıkları topla (Backtracking)
+        // 3. Bu noktadan sonraki tüm olasılıkları topla (Backtracking)
         // StringBuilder kullanarak performanslı string birleştirme yapıyoruz
         collectWords(currentNode.getChild(), new StringBuilder(prefix), suggestions);
 

@@ -17,7 +17,7 @@ public class DLBNode {
         this.data = data;
     }
 
-    // Getter ve Setterlar
+
     public char getData() { return data; }
     public void setData(char data) { this.data = data; }
 
