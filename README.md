@@ -119,8 +119,8 @@ src/main/java/org/project
 
 ## 👥 Ekip
 
-* [cite_start]**Zeynep TOPAL** (24120205054) [cite: 5]
-* [cite_start]**Hatice Sude POLAT** (24120205032) [cite: 6]
+* [cite_start]**Zeynep TOPAL** [cite: 5]
+* [cite_start]**Hatice Sude POLAT** [cite: 6]
 
 [cite_start]**Ders:** Veri Yapıları ve Algoritmalar [cite: 3]
 **Danışman:** Dr. Öğr. [cite_start]Üyesi Muhammet Sinan BAŞARSLAN [cite: 8]
